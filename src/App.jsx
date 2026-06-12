@@ -8,19 +8,6 @@ import Tracker from "./pages/Tracker.jsx";
 import Competitions from "./pages/Competitions.jsx";
 import CompetitionDetail from "./pages/CompetitionDetail.jsx";
 
-// ─── Seed data ───
-const SEED_BETS = [
-  { id: "b1", datum: "2026-06-11", tijd: "04:00", wedstrijd: "Zuid-Korea – Tsjechië", bet: "Under 3,5 goals", odd: 1.26, inzet: 9, status: "won", payout: 11.34, resultaat: "2-1" },
-  { id: "b2", datum: "2026-06-11", tijd: "09:30", wedstrijd: "FIFA e-sport: Italië – Portugal", bet: "Fulltime 1", odd: 1.12, inzet: 10, status: "won", payout: 11.2, resultaat: "7-5" },
-  { id: "b3", datum: "2026-06-11", tijd: "21:00", wedstrijd: "Mexico – Zuid-Afrika", bet: "Over 1,5 goals (profit boost)", odd: 1.39, inzet: 10, status: "won", payout: 17.8, resultaat: "2-0" },
-  { id: "b4", datum: "2026-06-12", tijd: "21:00", wedstrijd: "Canada – Bosnië-Herzegovina", bet: "Fulltime 1 & over 1,5 goals", odd: 2.35, inzet: 10, status: "open", payout: null, resultaat: "" },
-  { id: "b5", datum: "2026-06-13", tijd: "03:00", wedstrijd: "VS – Paraguay", bet: "Bet builder: under 2,5 + Pulisic over 0,5 SOT", odd: 2.75, inzet: 10, status: "open", payout: null, resultaat: "" },
-  { id: "b6", datum: "2026-06-13", tijd: "21:00", wedstrijd: "Qatar – Zwitserland", bet: "Bet builder: over 1,5 goals + over 6,5 SOT + Embolo over 0,5 SOT", odd: null, inzet: 10, status: "open", payout: null, resultaat: "" },
-];
-const SEED_DEPOSITS = [
-  { id: "d1", datum: "2026-06-11", bedrag: 20, note: "Startkapitaal" },
-];
-
 const GUEST_KEY = "wk2026-tracker-v2";
 
 // ─── Gast-modus: data lokaal in localStorage ───
@@ -28,7 +15,7 @@ const guestStore = {
   load() {
     try {
       const raw = localStorage.getItem(GUEST_KEY);
-      let d = raw ? JSON.parse(raw) : { bets: SEED_BETS, deposits: SEED_DEPOSITS };
+      let d = raw ? JSON.parse(raw) : { bets: [], deposits: [] };
       // one-time fix: oude default-startkapitaal van €50 → €20
       const sk = d.deposits.find(x => x.id === "d1");
       if (sk && sk.bedrag === 50 && (sk.note || "").startsWith("Startkapitaal")) {
@@ -36,7 +23,7 @@ const guestStore = {
         try { localStorage.setItem(GUEST_KEY, JSON.stringify(d)); } catch {}
       }
       return d;
-    } catch { return { bets: SEED_BETS, deposits: SEED_DEPOSITS }; }
+    } catch { return { bets: [], deposits: [] }; }
   },
   save(data) {
     try { localStorage.setItem(GUEST_KEY, JSON.stringify(data)); return true; } catch { return false; }
@@ -62,21 +49,7 @@ async function loadCloudData(userId) {
   ]);
   if (betsRes.error) throw betsRes.error;
   if (depRes.error) throw depRes.error;
-  let bets = betsRes.data || [];
-  let deposits = depRes.data || [];
-
-  // gloednieuw account: zet de seed-data als voorbeeld
-  if (bets.length === 0 && deposits.length === 0) {
-    bets = SEED_BETS.map(({ id, ...b }) => ({ ...b, id: crypto.randomUUID(), user_id: userId }));
-    deposits = SEED_DEPOSITS.map(({ id, ...d }) => ({ ...d, id: crypto.randomUUID(), user_id: userId }));
-    const [insBets, insDeps] = await Promise.all([
-      supabase.from("bets").insert(bets),
-      supabase.from("deposits").insert(deposits),
-    ]);
-    if (insBets.error) throw insBets.error;
-    if (insDeps.error) throw insDeps.error;
-  }
-  return { bets, deposits };
+  return { bets: betsRes.data || [], deposits: depRes.data || [] };
 }
 
 export default function App() {

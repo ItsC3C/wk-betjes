@@ -9,7 +9,7 @@ export default function Tracker({ data, persist }) {
   const [filter, setFilter] = useState("alles");
   const [betForm, setBetForm] = useState(EMPTY_BET);
   const [sheet, setSheet] = useState(null); // 'bet' | 'storten' | null
-  const [depForm, setDepForm] = useState({ bedrag: "", note: "" });
+  const [depForm, setDepForm] = useState({ bedrag: "", note: "", datum: "" });
   const [settling, setSettling] = useState(null);
   const [settleVals, setSettleVals] = useState({ resultaat: "", payout: "" });
   const { matches, status: matchesStatus } = useMatches();
@@ -42,9 +42,9 @@ export default function Tracker({ data, persist }) {
   };
   const addDeposit = () => {
     if (!num(depForm.bedrag) || num(depForm.bedrag) <= 0) return;
-    const d = { id: crypto.randomUUID(), datum: new Date().toISOString().slice(0, 10), bedrag: num(depForm.bedrag), note: depForm.note.trim() || "Storting" };
+    const d = { id: crypto.randomUUID(), datum: depForm.datum || new Date().toISOString().slice(0, 10), bedrag: num(depForm.bedrag), note: depForm.note.trim() || "Storting" };
     persist({ ...data, deposits: [...deposits, d] }, { cloud: (uid) => supabase.from("deposits").insert({ ...d, user_id: uid }) });
-    setDepForm({ bedrag: "", note: "" }); setSheet(null);
+    setDepForm({ bedrag: "", note: "", datum: "" }); setSheet(null);
   };
   const settleLose = (b) => persist(
     { ...data, bets: bets.map(x => x.id === b.id ? { ...x, status: "lost", payout: 0 } : x) },
@@ -156,6 +156,7 @@ export default function Tracker({ data, persist }) {
         <div style={S.sheet}>
           <input style={S.input} placeholder="Bedrag €" inputMode="decimal" autoFocus value={depForm.bedrag} onChange={e => setDepForm({ ...depForm, bedrag: e.target.value })} />
           <input style={S.input} placeholder="Omschrijving (optioneel)" value={depForm.note} onChange={e => setDepForm({ ...depForm, note: e.target.value })} />
+          <input style={S.input} type="date" value={depForm.datum || new Date().toISOString().slice(0, 10)} onChange={e => setDepForm({ ...depForm, datum: e.target.value })} />
           <button className="press" style={S.cta} onClick={addDeposit}>Storten</button>
         </div>
       )}
